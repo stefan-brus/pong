@@ -26,7 +26,7 @@ background = black
 
 -- Game loop ticks per second
 frequency :: Int
-frequency = 20
+frequency = 60
 
 -- The "pong green" color
 pongGreen :: Color
