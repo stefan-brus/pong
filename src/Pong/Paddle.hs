@@ -41,10 +41,10 @@ makePaddle p h = Paddle {
 -- Draw a paddle rectangle
 paddleRect :: Picture
 paddleRect = color Config.pongGreen $ polygon [
-  (0,-50),
-  (paddleWidth,-50),
-  (paddleWidth,50),
-  (0,50)
+  (0,-25),
+  (paddleWidth,-25),
+  (paddleWidth,25),
+  (0,25)
   ]
 
 -- Render a paddle
