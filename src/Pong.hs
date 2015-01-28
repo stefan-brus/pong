@@ -2,6 +2,7 @@
 
 module Pong where
 
+import Data.Fixed (mod')
 import Data.Monoid
 
 import Graphics.Gloss.Interface.Pure.Game
@@ -20,6 +21,12 @@ data State = StateInit | StateGame | StateEnd
 -- The current direction of the ball
 data Direction = ToPlayer | ToComputer deriving (Eq)
 
+-- The state of the player paddle
+data PlayerMovement = PlayerStill | PlayerUp | PlayerDown deriving (Eq,Show)
+
+-- Collision direction enumerator
+data Collision = NoCollision | HCollision | VCollision deriving (Eq)
+
 -- The world
 -- Speed is in pixels per second
 data World = World {
@@ -28,8 +35,10 @@ data World = World {
   worldComputer :: Paddle,
   worldBall :: Ball,
   worldDir :: Direction,
+  worldMoving :: PlayerMovement,
   worldSpeed :: Float,
-  worldAngle :: Float
+  worldAngle :: Float,
+  worldDebug :: String
 }
 
 --------------------------
@@ -44,15 +53,25 @@ initWorld = World {
   worldComputer = computerPaddle,
   worldBall = makeBall 0 0,
   worldDir = ToPlayer,
+  worldMoving = PlayerStill,
   worldSpeed = 100,
-  worldAngle = 3.14159
+  worldAngle = 4.2,
+  worldDebug = "DEBUG"
 }
 
 -- Render the game given the state of the world
 render :: World -> Picture
-render World { worldState = StateInit } = renderInit
-render World { worldState = StateEnd, worldDir = dir } = renderEnd dir
-render w@(World { worldState = StateGame }) = renderGame w
+render w@(World { worldDebug = s }) = renderDebug s <> renderWorld w
+
+-- Render the debug string
+renderDebug :: String -> Picture
+renderDebug s = translate (fromIntegral (-Config.width) / 2 + 70) (fromIntegral (-Config.height) / 2 + 20) $ scale 0.1 0.1 $ color Config.pongGreen $ text s
+
+-- Render the world
+renderWorld :: World -> Picture
+renderWorld World { worldState = StateInit } = renderInit
+renderWorld World { worldState = StateEnd, worldDir = dir } = renderEnd dir
+renderWorld w@(World { worldState = StateGame }) = renderGame w
 
 -- Render the game
 renderGame :: World -> Picture
@@ -77,7 +96,13 @@ renderStart = translate (-80) (-50) $ scale 0.1 0.1 $ color Config.pongGreen $ t
 
 -- Handle input events
 handle :: Event -> World -> World
-handle _ w@(World { worldState = StateGame }) = w
+handle e w@(World { worldState = StateGame,
+                    worldMoving = m }) = case e of
+  EventKey (SpecialKey KeyUp) Down _ _ -> w { worldMoving = PlayerUp }
+  EventKey (SpecialKey KeyUp) Up _ _ -> w { worldMoving = if m == PlayerUp then PlayerStill else m }
+  EventKey (SpecialKey KeyDown) Down _ _ -> w { worldMoving = PlayerDown }
+  EventKey (SpecialKey KeyDown) Up _ _ -> w { worldMoving = if m == PlayerDown then PlayerStill else m }
+  _ -> w
 handle e w = case e of
   EventKey (SpecialKey KeySpace) Down _ _ -> initWorld { worldState = StateGame }
   _ -> w
@@ -85,17 +110,52 @@ handle e w = case e of
 -- Step the game forward in the given amount of time
 step :: Float -> World -> World
 step t w@(World { worldState = StateGame,
+                  worldPlayer = pp,
+                  worldComputer = pc@(Paddle { paddleHeight = compHeight }),
                   worldBall = Ball { ballLocation = (x,y) },
+                  worldDir = d,
+                  worldMoving = m,
                   worldSpeed = v,
                   worldAngle = a }) =
   let dx = t * v * (cos a)
       dy = t * v * (sin a)
+      playerDist = if m == PlayerStill then 0 else if m == PlayerUp then t * Config.paddleSpeed else (-t) * Config.paddleSpeed
+      compDist = if compHeight == y then 0 else if compHeight > y then t * Config.paddleSpeed else (-t) * Config.paddleSpeed
+      newBall = makeBall (x + dx) (y + dy)
+      collision = checkCollision newBall
   in if isDead x
      then w { worldState = StateEnd }
-     else w { worldBall = makeBall (x + dx) (y + dy) }
+     else w {
+       worldPlayer = movePaddle pp playerDist,
+       worldComputer = movePaddle pc compDist,
+       worldBall = newBall,
+       worldDir = if collision == HCollision then changeDir d else d,
+       worldAngle = changeAngle collision
+     }
   where
     isDead :: Float -> Bool
-    isDead bx = bx < (fromIntegral Config.width / (-2)) + (ballWidth / 2) || bx > (fromIntegral Config.width / 2) - (ballWidth / 2)
+    isDead bx = bx < (fromIntegral Config.width / (-2)) + ballSize || bx > (fromIntegral Config.width / 2) - ballSize
+
+    changeDir :: Direction -> Direction
+    changeDir ToPlayer = ToComputer
+    changeDir ToComputer = ToPlayer
+
+    changeAngle :: Collision -> Float
+    changeAngle VCollision = 2 * pi - a
+    changeAngle HCollision = ((-pi) - a) `mod'` (2 * pi)
+    changeAngle _ = a
+
+    checkCollision :: Ball -> Collision
+    checkCollision Ball { ballLocation = (bx,by) }
+      | by >= fromIntegral Config.height / 2 - ballSize || by <= fromIntegral (-Config.height) / 2 + ballSize = VCollision
+      | bx >= fromIntegral Config.width / 2 - paddleWidth = checkPaddle pc by
+      | bx <= fromIntegral (-Config.width) / 2 + paddleWidth = checkPaddle pp by
+      | otherwise = NoCollision
+
+    checkPaddle :: Paddle -> Float -> Collision
+    checkPaddle (Paddle { paddleHeight = h }) by
+      | by + ballSize > h - paddleSize || by - ballSize < h + paddleSize = HCollision
+      | otherwise = NoCollision
 step _ w = w
 
 -- Start the game

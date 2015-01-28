@@ -34,4 +34,4 @@ pongGreen = makeColorI 0x2B 0xA8 0x20 0xFF
 
 -- How fast the paddles can go in pixels/sec
 paddleSpeed :: Float
-paddleSpeed = 80
+paddleSpeed = 150

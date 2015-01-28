@@ -21,7 +21,19 @@ data Paddle = Paddle {
 
 -- The width of a paddle
 paddleWidth :: Float
-paddleWidth = 10
+paddleWidth = 20
+
+-- The size (height-radius-ish) of a paddle
+paddleSize :: Float
+paddleSize = 25
+
+-- The maximum height of a paddle
+maxHeight :: Float
+maxHeight = fromIntegral Config.height / 2 - paddleSize
+
+-- The minimum height of a paddle
+minHeight :: Float
+minHeight = (-maxHeight)
 
 -- The player's paddle
 playerPaddle :: Paddle
@@ -38,13 +50,19 @@ makePaddle p h = Paddle {
   paddleHeight = h
 }
 
+-- Move a paddle the given distance
+movePaddle :: Paddle -> Float -> Paddle
+movePaddle p@(Paddle { paddleHeight = h }) d
+  | (h >= maxHeight && d > 0) || (h <= minHeight && d < 0) = p
+  | otherwise = p { paddleHeight = h + d }
+
 -- Draw a paddle rectangle
 paddleRect :: Picture
 paddleRect = color Config.pongGreen $ polygon [
-  (0,-25),
-  (paddleWidth,-25),
-  (paddleWidth,25),
-  (0,25)
+  (0,-paddleSize),
+  (paddleWidth / 2,-paddleSize),
+  (paddleWidth / 2,paddleSize),
+  (0,paddleSize)
   ]
 
 -- Render a paddle
