@@ -134,7 +134,7 @@ step t w@(World { worldState = StateGame,
      }
   where
     isDead :: Float -> Bool
-    isDead bx = bx < (fromIntegral Config.width / (-2)) + ballSize || bx > (fromIntegral Config.width / 2) - ballSize
+    isDead bx = bx < (fromIntegral Config.width / (-2)) || bx > (fromIntegral Config.width / 2)
 
     changeDir :: Direction -> Direction
     changeDir ToPlayer = ToComputer
@@ -154,7 +154,7 @@ step t w@(World { worldState = StateGame,
 
     checkPaddle :: Paddle -> Float -> Collision
     checkPaddle (Paddle { paddleHeight = h }) by
-      | by + ballSize > h - paddleSize || by - ballSize < h + paddleSize = HCollision
+      | by + ballSize > h - paddleSize && by - ballSize < h + paddleSize = HCollision
       | otherwise = NoCollision
 step _ w = w
 
