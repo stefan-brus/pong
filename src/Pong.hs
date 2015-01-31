@@ -2,10 +2,12 @@
 
 module Pong where
 
+import Control.Monad.Random
+
 import Data.Fixed (mod')
 import Data.Monoid
 
-import Graphics.Gloss.Interface.Pure.Game
+import Graphics.Gloss.Interface.IO.Game
 
 import qualified Pong.Config as Config
 import Pong.Ball
@@ -45,7 +47,7 @@ data World = World {
 -- GAME LOGIC FUNCTIONS --
 --------------------------
 
--- Set up the initial state of the world
+-- Set up the initial state of the world with the given ball angle
 initWorld :: World
 initWorld = World {
   worldState = StateInit,
@@ -55,15 +57,15 @@ initWorld = World {
   worldDir = ToPlayer,
   worldMoving = PlayerStill,
   worldSpeed = 100,
-  worldAngle = 4.2,
+  worldAngle = pi,
   worldScore = 0
 }
 
 -- Render the game given the state of the world
-render :: World -> Picture
-render World { worldState = StateInit } = renderInit
-render World { worldState = StateEnd, worldDir = dir } = renderEnd dir
-render w@(World { worldState = StateGame, worldScore = s }) = renderGame w <> renderScore s
+render :: World -> IO Picture
+render World { worldState = StateInit } = return renderInit
+render World { worldState = StateEnd, worldDir = dir } = return $ renderEnd dir
+render w@(World { worldState = StateGame, worldScore = s }) = return $ renderGame w <> renderScore s
 
 -- Render the score
 renderScore :: Int -> Picture
@@ -91,20 +93,22 @@ renderStart :: Picture
 renderStart = translate (-80) (-50) $ scale 0.1 0.1 $ color Config.pongGreen $ text "Press SPACE to start"
 
 -- Handle input events
-handle :: Event -> World -> World
+handle :: Event -> World -> IO World
 handle e w@(World { worldState = StateGame,
                     worldMoving = m }) = case e of
-  EventKey (SpecialKey KeyUp) Down _ _ -> w { worldMoving = PlayerUp }
-  EventKey (SpecialKey KeyUp) Up _ _ -> w { worldMoving = if m == PlayerUp then PlayerStill else m }
-  EventKey (SpecialKey KeyDown) Down _ _ -> w { worldMoving = PlayerDown }
-  EventKey (SpecialKey KeyDown) Up _ _ -> w { worldMoving = if m == PlayerDown then PlayerStill else m }
-  _ -> w
+  EventKey (SpecialKey KeyUp) Down _ _ -> return $ w { worldMoving = PlayerUp }
+  EventKey (SpecialKey KeyUp) Up _ _ -> return $ w { worldMoving = if m == PlayerUp then PlayerStill else m }
+  EventKey (SpecialKey KeyDown) Down _ _ -> return $ w { worldMoving = PlayerDown }
+  EventKey (SpecialKey KeyDown) Up _ _ -> return $ w { worldMoving = if m == PlayerDown then PlayerStill else m }
+  _ -> return w
 handle e w = case e of
-  EventKey (SpecialKey KeySpace) Down _ _ -> initWorld { worldState = StateGame }
-  _ -> w
+  EventKey (SpecialKey KeySpace) Down _ _ -> do
+    initAngle <- evalRandIO $ getRandomR (pi / 2,3 * pi / 2)
+    return $ initWorld { worldState = StateGame, worldAngle = initAngle }
+  _ -> return w
 
 -- Step the game forward in the given amount of time
-step :: Float -> World -> World
+step :: Float -> World -> IO World
 step t w@(World { worldState = StateGame,
                   worldPlayer = pp,
                   worldComputer = pc@(Paddle { paddleHeight = compHeight }),
@@ -122,8 +126,8 @@ step t w@(World { worldState = StateGame,
       collision = checkCollision newBall
       isPlayerBounce = d == ToPlayer && collision == HCollision
   in if isDead x
-     then w { worldState = StateEnd }
-     else w {
+     then return $ w { worldState = StateEnd }
+     else return $ w {
        worldPlayer = movePaddle pp playerDist,
        worldComputer = movePaddle pc compDist,
        worldBall = newBall,
@@ -156,10 +160,10 @@ step t w@(World { worldState = StateGame,
     checkPaddle (Paddle { paddleHeight = h }) by
       | by + ballSize > h - paddleSize && by - ballSize < h + paddleSize = HCollision
       | otherwise = NoCollision
-step _ w = w
+step _ w = return w
 
 -- Start the game
 startPong :: IO ()
-startPong = play (InWindow "Pong!" (Config.width, Config.height) (Config.x, Config.y))
+startPong = playIO (InWindow "Pong!" (Config.width, Config.height) (Config.x, Config.y))
   Config.background Config.frequency
   initWorld render handle step
