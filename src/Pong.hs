@@ -103,7 +103,7 @@ handle e w@(World { worldState = StateGame,
   _ -> return w
 handle e w = case e of
   EventKey (SpecialKey KeySpace) Down _ _ -> do
-    initAngle <- evalRandIO $ getRandomR (pi / 2,3 * pi / 2)
+    initAngle <- evalRandIO $ getRandomR (3 * pi / 4,5 * pi / 4)
     return $ initWorld { worldState = StateGame, worldAngle = initAngle }
   _ -> return w
 
