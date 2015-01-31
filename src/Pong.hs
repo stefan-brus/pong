@@ -146,7 +146,7 @@ step t w@(World { worldState = StateGame,
 
     changeAngle :: Collision -> Float -> Float
     changeAngle VCollision _ = 2 * pi - a
-    changeAngle HCollision coeff = ((-pi) - a + pi / 4 * coeff) `mod'` (2 * pi)
+    changeAngle HCollision coeff = ((-pi) - a + pi / 4 * if coeff > 0.5 then 0.5 else coeff) `mod'` (2 * pi)
     changeAngle _ _ = a
 
     checkCollision :: Ball -> (Collision, Float)
