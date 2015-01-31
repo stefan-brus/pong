@@ -38,7 +38,7 @@ data World = World {
   worldMoving :: PlayerMovement,
   worldSpeed :: Float,
   worldAngle :: Float,
-  worldDebug :: String
+  worldScore :: Int
 }
 
 --------------------------
@@ -56,22 +56,18 @@ initWorld = World {
   worldMoving = PlayerStill,
   worldSpeed = 100,
   worldAngle = 4.2,
-  worldDebug = "DEBUG"
+  worldScore = 0
 }
 
 -- Render the game given the state of the world
 render :: World -> Picture
-render w@(World { worldDebug = s }) = renderDebug s <> renderWorld w
+render World { worldState = StateInit } = renderInit
+render World { worldState = StateEnd, worldDir = dir } = renderEnd dir
+render w@(World { worldState = StateGame, worldScore = s }) = renderGame w <> renderScore s
 
--- Render the debug string
-renderDebug :: String -> Picture
-renderDebug s = translate (fromIntegral (-Config.width) / 2 + 70) (fromIntegral (-Config.height) / 2 + 20) $ scale 0.1 0.1 $ color Config.pongGreen $ text s
-
--- Render the world
-renderWorld :: World -> Picture
-renderWorld World { worldState = StateInit } = renderInit
-renderWorld World { worldState = StateEnd, worldDir = dir } = renderEnd dir
-renderWorld w@(World { worldState = StateGame }) = renderGame w
+-- Render the score
+renderScore :: Int -> Picture
+renderScore s = translate (fromIntegral (-Config.width) / 2 + 70) (fromIntegral (-Config.height) / 2 + 20) $ scale 0.1 0.1 $ color Config.pongGreen $ text $ show s
 
 -- Render the game
 renderGame :: World -> Picture
@@ -116,13 +112,15 @@ step t w@(World { worldState = StateGame,
                   worldDir = d,
                   worldMoving = m,
                   worldSpeed = v,
-                  worldAngle = a }) =
+                  worldAngle = a,
+                  worldScore = s }) =
   let dx = t * v * (cos a)
       dy = t * v * (sin a)
       playerDist = if m == PlayerStill then 0 else if m == PlayerUp then t * Config.paddleSpeed else (-t) * Config.paddleSpeed
       compDist = if compHeight <= y + 1 && compHeight >= y - 1 then 0 else if compHeight < y then t * Config.paddleSpeed else (-t) * Config.paddleSpeed
       newBall = makeBall (x + dx) (y + dy)
       collision = checkCollision newBall
+      isPlayerBounce = d == ToPlayer && collision == HCollision
   in if isDead x
      then w { worldState = StateEnd }
      else w {
@@ -130,7 +128,8 @@ step t w@(World { worldState = StateGame,
        worldComputer = movePaddle pc compDist,
        worldBall = newBall,
        worldDir = if collision == HCollision then changeDir d else d,
-       worldAngle = changeAngle collision
+       worldAngle = changeAngle collision,
+       worldScore = s + if isPlayerBounce then 1 else 0
      }
   where
     isDead :: Float -> Bool
