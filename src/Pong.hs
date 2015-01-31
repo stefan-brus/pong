@@ -123,7 +123,7 @@ step t w@(World { worldState = StateGame,
       playerDist = if m == PlayerStill then 0 else if m == PlayerUp then t * Config.paddleSpeed else (-t) * Config.paddleSpeed
       compDist = if compHeight <= y + 1 && compHeight >= y - 1 then 0 else if compHeight < y then t * Config.paddleSpeed else (-t) * Config.paddleSpeed
       newBall = makeBall (x + dx) (y + dy)
-      collision = checkCollision newBall
+      (collision,coeff) = checkCollision newBall
       isPlayerBounce = d == ToPlayer && collision == HCollision
   in if isDead x
      then return $ w { worldState = StateEnd }
@@ -133,7 +133,7 @@ step t w@(World { worldState = StateGame,
        worldBall = newBall,
        worldDir = if collision == HCollision then changeDir d else d,
        worldSpeed = v * if isPlayerBounce then 1.1 else 1,
-       worldAngle = changeAngle collision,
+       worldAngle = changeAngle collision coeff,
        worldScore = s + if isPlayerBounce then 1 else 0
      }
   where
@@ -144,22 +144,22 @@ step t w@(World { worldState = StateGame,
     changeDir ToPlayer = ToComputer
     changeDir ToComputer = ToPlayer
 
-    changeAngle :: Collision -> Float
-    changeAngle VCollision = 2 * pi - a
-    changeAngle HCollision = ((-pi) - a) `mod'` (2 * pi)
-    changeAngle _ = a
+    changeAngle :: Collision -> Float -> Float
+    changeAngle VCollision _ = 2 * pi - a
+    changeAngle HCollision coeff = ((-pi) - a + pi / 4 * coeff) `mod'` (2 * pi)
+    changeAngle _ _ = a
 
-    checkCollision :: Ball -> Collision
+    checkCollision :: Ball -> (Collision, Float)
     checkCollision Ball { ballLocation = (bx,by) }
       | bx >= fromIntegral Config.width / 2 - paddleWidth - ballSize / 2 = checkPaddle pc by
       | bx <= fromIntegral (-Config.width) / 2 + paddleWidth + ballSize / 2 = checkPaddle pp by
-      | by >= fromIntegral Config.height / 2 - ballSize + 2 || by <= fromIntegral (-Config.height) / 2 + ballSize - 2 = VCollision
-      | otherwise = NoCollision
+      | by >= fromIntegral Config.height / 2 - ballSize + 2 || by <= fromIntegral (-Config.height) / 2 + ballSize - 2 = (VCollision,0)
+      | otherwise = (NoCollision,0)
 
-    checkPaddle :: Paddle -> Float -> Collision
+    checkPaddle :: Paddle -> Float -> (Collision, Float)
     checkPaddle (Paddle { paddleHeight = h }) by
-      | by + ballSize > h - paddleSize && by - ballSize < h + paddleSize = HCollision
-      | otherwise = NoCollision
+      | by + ballSize > h - paddleSize && by - ballSize < h + paddleSize = (HCollision,1 - (paddleSize - (by - h)) / paddleSize)
+      | otherwise = (NoCollision,0)
 step _ w = return w
 
 -- Start the game
