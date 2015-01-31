@@ -64,7 +64,7 @@ initWorld = World {
 -- Render the game given the state of the world
 render :: World -> IO Picture
 render World { worldState = StateInit } = return renderInit
-render World { worldState = StateEnd, worldDir = dir } = return $ renderEnd dir
+render World { worldState = StateEnd, worldBall = ball } = return $ renderEnd ball
 render w@(World { worldState = StateGame, worldScore = s }) = return $ renderGame w <> renderScore s
 
 -- Render the score
@@ -83,9 +83,9 @@ renderInit :: Picture
 renderInit = (translate (-120) 50 $ scale 0.2 0.2 $ color Config.pongGreen $ text "Welcome to Pong!") <>
   renderStart
 
--- Render the game over screen, based on the last direction of the ball
-renderEnd :: Direction -> Picture
-renderEnd dir = (translate (-170) 50 $ scale 0.2 0.2 $ color Config.pongGreen $ text $ "Game over! " ++ (if dir == ToPlayer then "Computer" else "Player") ++ " wins.") <>
+-- Render the game over screen, based on the last location of the ball
+renderEnd :: Ball -> Picture
+renderEnd Ball { ballLocation = (x,_) } = (translate (-170) 50 $ scale 0.2 0.2 $ color Config.pongGreen $ text $ "Game over! " ++ (if x < 0 then "Computer" else "Player") ++ " wins.") <>
   renderStart
 
 -- Render the "press to start" message
