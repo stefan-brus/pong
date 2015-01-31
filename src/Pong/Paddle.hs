@@ -68,5 +68,5 @@ paddleRect = color Config.pongGreen $ polygon [
 -- Render a paddle
 renderPaddle :: Paddle -> Picture
 renderPaddle Paddle { paddleIsPlayer = p, paddleHeight = y } =
-  let dx = (fromIntegral Config.width / if p then -2.0 else 2.0) - if p then 0.0 else paddleWidth
+  let dx = (fromIntegral Config.width / if p then -2.0 else 2.0) - if p then 0.0 else paddleWidth / 2
   in translate dx y $ paddleRect
