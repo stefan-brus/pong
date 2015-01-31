@@ -120,7 +120,7 @@ step t w@(World { worldState = StateGame,
   let dx = t * v * (cos a)
       dy = t * v * (sin a)
       playerDist = if m == PlayerStill then 0 else if m == PlayerUp then t * Config.paddleSpeed else (-t) * Config.paddleSpeed
-      compDist = if compHeight == y then 0 else if compHeight > y then t * Config.paddleSpeed else (-t) * Config.paddleSpeed
+      compDist = if compHeight <= y + 1 && compHeight >= y - 1 then 0 else if compHeight < y then t * Config.paddleSpeed else (-t) * Config.paddleSpeed
       newBall = makeBall (x + dx) (y + dy)
       collision = checkCollision newBall
   in if isDead x
