@@ -128,12 +128,13 @@ step t w@(World { worldState = StateGame,
        worldComputer = movePaddle pc compDist,
        worldBall = newBall,
        worldDir = if collision == HCollision then changeDir d else d,
+       worldSpeed = v * if isPlayerBounce then 1.1 else 1,
        worldAngle = changeAngle collision,
        worldScore = s + if isPlayerBounce then 1 else 0
      }
   where
     isDead :: Float -> Bool
-    isDead bx = bx < (fromIntegral Config.width / (-2)) || bx > (fromIntegral Config.width / 2)
+    isDead bx = bx < (fromIntegral Config.width / (-2)) + paddleWidth || bx > (fromIntegral Config.width / 2) - paddleWidth
 
     changeDir :: Direction -> Direction
     changeDir ToPlayer = ToComputer
@@ -146,9 +147,9 @@ step t w@(World { worldState = StateGame,
 
     checkCollision :: Ball -> Collision
     checkCollision Ball { ballLocation = (bx,by) }
-      | by >= fromIntegral Config.height / 2 - ballSize || by <= fromIntegral (-Config.height) / 2 + ballSize = VCollision
-      | bx >= fromIntegral Config.width / 2 - paddleWidth = checkPaddle pc by
-      | bx <= fromIntegral (-Config.width) / 2 + paddleWidth = checkPaddle pp by
+      | bx >= fromIntegral Config.width / 2 - paddleWidth - ballSize / 2 = checkPaddle pc by
+      | bx <= fromIntegral (-Config.width) / 2 + paddleWidth + ballSize / 2 = checkPaddle pp by
+      | by >= fromIntegral Config.height / 2 - ballSize + 2 || by <= fromIntegral (-Config.height) / 2 + ballSize - 2 = VCollision
       | otherwise = NoCollision
 
     checkPaddle :: Paddle -> Float -> Collision
