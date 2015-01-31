@@ -21,7 +21,7 @@ data Paddle = Paddle {
 
 -- The width of a paddle
 paddleWidth :: Float
-paddleWidth = 20
+paddleWidth = 10
 
 -- The size (height-radius-ish) of a paddle
 paddleSize :: Float
@@ -60,13 +60,13 @@ movePaddle p@(Paddle { paddleHeight = h }) d
 paddleRect :: Picture
 paddleRect = color Config.pongGreen $ polygon [
   (0,-paddleSize),
-  (paddleWidth / 2,-paddleSize),
-  (paddleWidth / 2,paddleSize),
+  (paddleWidth,-paddleSize),
+  (paddleWidth,paddleSize),
   (0,paddleSize)
   ]
 
 -- Render a paddle
 renderPaddle :: Paddle -> Picture
 renderPaddle Paddle { paddleIsPlayer = p, paddleHeight = y } =
-  let dx = (fromIntegral Config.width / if p then -2.0 else 2.0) - if p then 0.0 else paddleWidth / 2
+  let dx = (fromIntegral Config.width / if p then -2.0 else 2.0) - if p then 0.0 else paddleWidth
   in translate dx y $ paddleRect
