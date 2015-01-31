@@ -6,7 +6,7 @@ import Graphics.Gloss
 
 -- Window width
 width :: Int
-width = 600
+width = 400
 
 -- Window height
 height :: Int
