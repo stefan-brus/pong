@@ -47,7 +47,7 @@ data World = World {
 -- GAME LOGIC FUNCTIONS --
 --------------------------
 
--- Set up the initial state of the world with the given ball angle
+-- Set up the initial state of the world
 initWorld :: World
 initWorld = World {
   worldState = StateInit,
